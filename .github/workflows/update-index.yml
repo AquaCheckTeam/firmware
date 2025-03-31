@@ -17,16 +17,24 @@ jobs:
       - name: Get most recent changed file in subdirectory
         id: changed-files
         run: |
-          # List files changed between commits that are in subdirectory
+          # Check if the "before" commit exists; if not, exit gracefully.
+          if ! git cat-file -e "${{ github.event.before }}" 2>/dev/null; then
+            echo "No previous commit found, skipping diff."
+            exit 0
+          fi
+
+          # List files changed between the before and current commits that are in the subdirectory
           CHANGED_FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep '^subdirectory/')
-          # Select the last file from the list (assumed to be the most recent)
+          
+          # Select the last file from the list (assumed to be the most recent change)
           MOST_RECENT_FILE=$(echo "$CHANGED_FILES" | tail -n 1)
+          
           echo "changed_file=$MOST_RECENT_FILE" >> $GITHUB_OUTPUT
           echo "CHANGED_FILE=$MOST_RECENT_FILE" >> $GITHUB_ENV
 
       - name: Update index.html with the most recent file name
         run: |
-          # Write only the file name (no HTML wrapper) to index.html
+          # Write only the file name (no additional HTML) to index.html
           echo "$CHANGED_FILE" > index.html
 
       - name: Commit and push changes
